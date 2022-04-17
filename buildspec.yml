@@ -1,0 +1,30 @@
+version: 02
+
+phases: 
+   install:
+     runtime-versions:
+         docker:18
+   pre_build:
+     commands:
+        -echo logging in to Amazon ECR...
+        -aws --version
+        -$(aws ecr get-login --region $AWS_DEFAULT_REGION --no-include-email)
+        -REPOSITORY_URI=public.ecr.aws/r3i7l4o6/ed_web
+        -IMAGE_TAG=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+   build: 
+     commands:
+        -echo Build started on 'date'
+        -echo Building the Docker image...
+        -docker build -t $REPOSITORY_URI:$IMAGE_TAG .
+   post_build:
+     commands: 
+        -echo Build completed on 'date'
+        -echo Pushing the docker image...
+        -docker push $REPOSITORY_URI:Latest .
+        -docker push $REPOSITORY_URI:$IMAGE_TAG      
+        -echo Writing image definitions file...
+        -printf '[{"name":"ed_web","imagerUri":"%s"}]' $REPOSITORY_URI:$IMAGE_TAG > imagedefinition.json
+        -cat imagedefinition.json
+ artifacts:
+   files: imagedefinition.json
+            
